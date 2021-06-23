@@ -332,7 +332,7 @@ func (s *Server) Run() error {
 	metrics.ServerEventCounter.WithLabelValues(metrics.EventStart).Inc()
 	s.reportConfig()
 
-	// Start HTTP API to report tidb info such as TPS.
+	// Start HTTP API to report tidb info such as TPS. HTTP API，用来提供metrics信息
 	if s.cfg.Status.ReportStatus {
 		s.startStatusHTTP()
 	}
@@ -385,7 +385,7 @@ func (s *Server) Run() error {
 			continue
 		}
 
-		go s.onConn(clientConn)
+		go s.onConn(clientConn) // 开始处理？
 	}
 }
 
@@ -434,7 +434,7 @@ func (s *Server) Close() {
 // onConn runs in its own goroutine, handles queries from this connection.
 func (s *Server) onConn(conn *clientConn) {
 	ctx := logutil.WithConnID(context.Background(), conn.connectionID)
-	if err := conn.handshake(ctx); err != nil {
+	if err := conn.handshake(ctx); err != nil { // 握手
 		if plugin.IsEnable(plugin.Audit) && conn.ctx != nil {
 			conn.ctx.GetSessionVars().ConnectionInfo = conn.connectInfo()
 			err = plugin.ForeachPlugin(plugin.Audit, func(p *plugin.Plugin) error {

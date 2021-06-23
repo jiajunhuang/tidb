@@ -151,6 +151,7 @@ var (
 )
 
 func main() {
+	// 启动函数
 	help := flag.Bool("help", false, "show the usage")
 	flag.Parse()
 	if *help {
@@ -161,17 +162,17 @@ func main() {
 		fmt.Println(printer.GetTiDBInfo())
 		os.Exit(0)
 	}
-	registerStores()
-	registerMetrics()
-	config.InitializeConfig(*configPath, *configCheck, *configStrict, overrideConfig)
-	if config.GetGlobalConfig().OOMUseTmpStorage {
+	registerStores() // 注册存储
+	registerMetrics() // 注册metrics
+	config.InitializeConfig(*configPath, *configCheck, *configStrict, overrideConfig) // 加载配置文件
+	if config.GetGlobalConfig().OOMUseTmpStorage { // OOM还会使用磁盘空间？
 		config.GetGlobalConfig().UpdateTempStoragePath()
 		err := disk.InitializeTempDir()
 		terror.MustNil(err)
 		checkTempStorageQuota()
 	}
 	setGlobalVars()
-	setCPUAffinity()
+	setCPUAffinity() // 设置CPU亲和性
 	setupLog()
 	setHeapProfileTracker()
 	setupTracing() // Should before createServer and after setup config.
@@ -188,8 +189,8 @@ func main() {
 		cleanup(svr, storage, dom, graceful)
 		close(exited)
 	})
-	topsql.SetupTopSQL()
-	terror.MustNil(svr.Run())
+	topsql.SetupTopSQL() // 追踪耗性能的SQL
+	terror.MustNil(svr.Run()) // svr.Run() 开始执行服务端逻辑
 	<-exited
 	syncLog()
 }
