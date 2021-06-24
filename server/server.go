@@ -482,7 +482,7 @@ func (s *Server) onConn(conn *clientConn) {
 	}
 
 	connectedTime := time.Now()
-	conn.Run(ctx)
+	conn.Run(ctx) // 处理请求的地方
 
 	err = plugin.ForeachPlugin(plugin.Audit, func(p *plugin.Plugin) error {
 		// Audit plugin may be disabled before a conn is created, leading no connectionInfo in sessionVars.

@@ -857,7 +857,7 @@ func (cc *clientConn) Run(ctx context.Context) {
 		}
 
 		startTime := time.Now()
-		if err = cc.dispatch(ctx, data); err != nil {
+		if err = cc.dispatch(ctx, data); err != nil { // 处理客户端请求
 			if terror.ErrorEqual(err, io.EOF) {
 				cc.addMetrics(data[0], startTime, nil)
 				disconnectNormal.Inc()
@@ -991,10 +991,9 @@ func (cc *clientConn) addMetrics(cmd byte, startTime time.Time, err error) {
 // It also gets a token from server which is used to limit the concurrently handling clients.
 // The most frequently used command is ComQuery.
 func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
-	defer func() {
-		// reset killed for each request
-		atomic.StoreUint32(&cc.ctx.GetSessionVars().Killed, 0)
-	}()
+	// reset killed for each request
+	defer atomic.StoreUint32(&cc.ctx.GetSessionVars().Killed, 0)
+
 	t := time.Now()
 	if (cc.ctx.Status() & mysql.ServerStatusInTrans) > 0 {
 		connIdleDurationHistogramInTxn.Observe(t.Sub(cc.lastActive).Seconds())
@@ -1094,7 +1093,7 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 			data = data[:len(data)-1]
 			dataStr = string(hack.String(data))
 		}
-		return cc.handleQuery(ctx, dataStr)
+		return cc.handleQuery(ctx, dataStr) // 处理查询
 	case mysql.ComFieldList:
 		return cc.handleFieldList(ctx, dataStr)
 	// ComCreateDB, ComDropDB
@@ -1560,7 +1559,7 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 			// Save the point plan in Session so we don't need to build the point plan again.
 			cc.ctx.SetValue(plannercore.PointPlanKey, plannercore.PointPlanVal{Plan: pointPlans[i]})
 		}
-		retryable, err = cc.handleStmt(ctx, stmt, parserWarns, i == len(stmts)-1)
+		retryable, err = cc.handleStmt(ctx, stmt, parserWarns, i == len(stmts)-1) // 执行
 		if err != nil {
 			_, allowTiFlashFallback := cc.ctx.GetSessionVars().AllowFallbackToTiKV[kv.TiFlash]
 			if allowTiFlashFallback && errors.ErrorEqual(err, storeerr.ErrTiFlashServerTimeout) && retryable {
@@ -1688,7 +1687,7 @@ func (cc *clientConn) handleStmt(ctx context.Context, stmt ast.StmtNode, warns [
 	ctx = context.WithValue(ctx, execdetails.StmtExecDetailKey, &execdetails.StmtExecDetails{})
 	ctx = context.WithValue(ctx, util.ExecDetailsKey, &util.ExecDetails{})
 	reg := trace.StartRegion(ctx, "ExecuteStmt")
-	rs, err := cc.ctx.ExecuteStmt(ctx, stmt)
+	rs, err := cc.ctx.ExecuteStmt(ctx, stmt) // 执行
 	reg.End()
 	// The session tracker detachment from global tracker is solved in the `rs.Close` in most cases.
 	// If the rs is nil, the detachment will be done in the `handleNoDelay`.
